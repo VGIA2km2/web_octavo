@@ -7,14 +7,25 @@ export class CarritoService {
   private _productos = signal<Producto[]>([]);
 
   productos = this._productos.asReadonly();
+  carrito = this.productos; // Alias para compatibilidad con CheckoutComponent
   
 
   total = computed(() => 
-    this._productos().reduce((acc, p) => acc + parseFloat(p.precio || '0'), 0)
+    this._productos().reduce((acc, p) => acc + (parseFloat(p.precio || '0') * (p.cantidad || 1)), 0)
   );
 
   agregar(producto: Producto) {
-    this._productos.update(lista => [...lista, producto]);
+    this._productos.update(lista => {
+      const existente = lista.find(p => p.id === producto.id);
+      if (existente) {
+        return lista.map(p => 
+          p.id === producto.id 
+            ? { ...p, cantidad: (p.cantidad || 1) + 1 } 
+            : p
+        );
+      }
+      return [...lista, { ...producto, cantidad: 1 }];
+    });
   }
 
   quitar(id: string | null) {
@@ -23,6 +34,10 @@ export class CarritoService {
 
   vaciar() {
     this._productos.set([]);
+  }
+
+  vaciarCarrito() {
+    this.vaciar(); // Alias para compatibilidad con CheckoutComponent
   }
 
   exportarReciboXML() {
